@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Enhancer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#121212',
+                            panel: '#1E1E1E',
+                            border: '#333333',
+                            text: '#E0E0E0',
+                            muted: '#9CA3AF'
+                        },
+                        primary: {
+                            main: '#3B82F6',
+                            hover: '#2563EB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen text-dark-text">
+    <header class="bg-dark-panel border-b border-dark-border px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-bold">Prompt Enhancer</h1>
+    </header>
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <!-- Input Panel (Left) -->
+        <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-dark-border flex flex-col gap-6">
+            <h2 class="text-lg font-semibold">Input & Configuration</h2>
+
+            <!-- Raw Prompt Input -->
+            <div class="flex flex-col gap-2">
+                <label for="rawInput" class="text-sm font-medium text-dark-muted">Raw Prompt (Required)</label>
+                <textarea id="rawInput" rows="5" class="w-full bg-dark-panel border border-dark-border rounded-md p-3 text-sm focus:outline-none focus:border-primary-main focus:ring-1 focus:ring-primary-main placeholder-dark-muted resize-y" placeholder="Paste your raw text or idea here..."></textarea>
+                <p id="inputError" class="text-red-500 text-xs hidden">Please enter a prompt before enhancing.</p>
+            </div>
+
+            <!-- Persona Selection -->
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-dark-muted">Persona Profile</label>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <button class="persona-btn active border border-primary-main bg-primary-main/10 text-primary-main rounded py-2 text-sm font-medium transition-colors" data-persona="expert">Expert</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="creative">Creative</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="developer">Developer</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="minimalist">Minimalist</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="imagegen">Image Gen</button>
+                </div>
+            </div>
+
+            <!-- Density Slider -->
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <label for="densitySlider" class="text-sm font-medium text-dark-muted">Structural Density</label>
+                    <span id="densityLabel" class="text-xs font-semibold px-2 py-1 bg-dark-panel rounded text-primary-main">Balanced</span>
+                </div>
+                <input type="range" id="densitySlider" min="0" max="2" value="1" step="1" class="w-full h-2 bg-dark-panel rounded-lg appearance-none cursor-pointer accent-primary-main">
+                <div class="flex justify-between text-xs text-dark-muted mt-1 px-1">
+                    <span>Compact</span>
+                    <span>Balanced</span>
+                    <span>Detailed</span>
+                </div>
+            </div>
+
+            <!-- Toggles -->
+            <div class="flex flex-col gap-3">
+                <label class="text-sm font-medium text-dark-muted">Structural Constraints</label>
+
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                        <input type="checkbox" id="toggleNegative" class="sr-only peer">
+                        <div class="w-10 h-5 bg-dark-panel border border-dark-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-main peer-checked:border-primary-main"></div>
+                    </div>
+                    <span class="text-sm text-dark-text group-hover:text-white transition-colors">Negative Constraints (Ban fluff/clichés)</span>
+                </label>
+
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                        <input type="checkbox" id="toggleCot" class="sr-only peer">
+                        <div class="w-10 h-5 bg-dark-panel border border-dark-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-main peer-checked:border-primary-main"></div>
+                    </div>
+                    <span class="text-sm text-dark-text group-hover:text-white transition-colors">Chain-of-Thought (Step-by-step reasoning)</span>
+                </label>
+            </div>
+
+            <!-- Trigger Button -->
+            <button id="enhanceBtn" class="mt-4 w-full bg-primary-main hover:bg-primary-hover text-white font-semibold py-3 px-4 rounded-md transition-colors flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <span>Enhance Prompt</span>
+            </button>
+        </div>
+
+        <!-- Output Workspace (Right) -->
+        <div class="w-full md:w-1/2 p-6 flex flex-col bg-dark-bg gap-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold">Live Output Workspace</h2>
+                <div class="flex gap-2">
+                    <button id="copyBtn" class="text-sm font-medium text-dark-text bg-dark-panel hover:bg-dark-border border border-dark-border py-1.5 px-3 rounded flex items-center gap-1.5 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span id="copyText">Copy</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="flex-1 relative flex flex-col">
+                <div id="loadingOverlay" class="absolute inset-0 bg-dark-bg/80 backdrop-blur-sm z-10 hidden flex-col items-center justify-center rounded-md border border-dark-border">
+                    <svg class="animate-spin h-8 w-8 text-primary-main mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="text-sm font-medium text-primary-main animate-pulse">Compiling Meta-Prompt...</p>
+                </div>
+                <textarea id="outputArea" class="flex-1 w-full h-full bg-dark-panel border border-dark-border rounded-md p-4 text-sm font-mono focus:outline-none focus:border-primary-main focus:ring-1 focus:ring-primary-main resize-none text-dark-text placeholder-dark-muted" placeholder="Your enhanced prompt will appear here..."></textarea>
+            </div>
+
+            <!-- Macros -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-semibold text-dark-muted uppercase tracking-wider">Macro Append Modifiers</label>
+                <div class="flex flex-wrap gap-2">
+                    <button class="macro-btn text-xs bg-dark-panel hover:bg-dark-border border border-dark-border text-dark-text py-1.5 px-3 rounded transition-colors" data-macro="format_json">Output as JSON</button>
+                    <button class="macro-btn text-xs bg-dark-panel hover:bg-dark-border border border-dark-border text-dark-text py-1.5 px-3 rounded transition-colors" data-macro="tone_professional">Professional Tone</button>
+                    <button class="macro-btn text-xs bg-dark-panel hover:bg-dark-border border border-dark-border text-dark-text py-1.5 px-3 rounded transition-colors" data-macro="target_beginners">Target: Beginners</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elements
+            const rawInput = document.getElementById('rawInput');
+            const inputError = document.getElementById('inputError');
+            const enhanceBtn = document.getElementById('enhanceBtn');
+            const outputArea = document.getElementById('outputArea');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const copyBtn = document.getElementById('copyBtn');
+            const copyText = document.getElementById('copyText');
+
+            const personaBtns = document.querySelectorAll('.persona-btn');
+            const densitySlider = document.getElementById('densitySlider');
+            const densityLabel = document.getElementById('densityLabel');
+
+            const toggleNegative = document.getElementById('toggleNegative');
+            const toggleCot = document.getElementById('toggleCot');
+            const macroBtns = document.querySelectorAll('.macro-btn');
+
+            let activePersona = 'expert';
+
+            // Persona Selection (FR-2.1)
+            personaBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    personaBtns.forEach(b => {
+                        b.classList.remove('active', 'border-primary-main', 'bg-primary-main/10', 'text-primary-main');
+                        b.classList.add('border-dark-border', 'bg-dark-panel', 'text-dark-text');
+                    });
+                    btn.classList.remove('border-dark-border', 'bg-dark-panel', 'text-dark-text');
+                    btn.classList.add('active', 'border-primary-main', 'bg-primary-main/10', 'text-primary-main');
+                    activePersona = btn.dataset.persona;
+                });
+            });
+
+            // Density Slider (FR-2.2)
+            const densityMap = {
+                '0': 'Compact',
+                '1': 'Balanced',
+                '2': 'Detailed'
+            };
+            densitySlider.addEventListener('input', (e) => {
+                densityLabel.textContent = densityMap[e.target.value];
+            });
+
+            // Deterministic Compilation Assembly (FR-3.1)
+            const compilePrompt = (raw, persona, density, negative, cot) => {
+                let prompt = "";
+
+                // 1. Persona Context
+                const personaTemplates = {
+                    'expert': "Act as an industry expert with deep domain knowledge. Provide a comprehensive and authoritative response.",
+                    'creative': "Act as a highly creative and unconventional thinker. Provide an innovative and engaging response.",
+                    'developer': "Act as a senior software engineer. Provide a structured, technical, and pragmatic response.",
+                    'minimalist': "Act as a minimalist assistant. Provide the most direct, concise, and essential answer possible without fluff.",
+                    'imagegen': "Act as an expert in image generation prompting. Provide extensive background details for the scene, describing lighting, composition, mood, and style, while firmly grounding it in the user's specific requirements."
+                };
+                prompt += `[ROLE/PERSONA]\n${personaTemplates[persona]}\n\n`;
+
+                // 2. Main Task / Raw Input
+                prompt += `[TASK]\n${raw.trim()}\n\n`;
+
+                // 3. Density / Structure
+                const densityTemplates = {
+                    '0': "Keep the response brief, high-level, and directly to the point. Omit extensive background details.",
+                    '1': "Provide a balanced response with necessary context, a clear explanation, and relevant examples if helpful.",
+                    '2': "Provide a highly detailed, exhaustive breakdown. Include underlying principles, edge cases, and comprehensive explanations."
+                };
+                prompt += `[FORMAT & DETAIL LEVEL]\n${densityTemplates[density]}\n\n`;
+
+                // 4. Constraints
+                let constraints = [];
+                if (negative) constraints.push("- Do NOT use generic AI clichés (e.g., 'In conclusion', 'It is important to note', 'As an AI').\n- Do NOT include unnecessary fluff or conversational filler.");
+                if (cot) constraints.push("- Think step-by-step before arriving at your final answer. Present your reasoning process clearly.");
+
+                if (constraints.length > 0) {
+                    prompt += `[CONSTRAINTS]\n${constraints.join('\n')}\n\n`;
+                }
+
+                return prompt.trim();
+            };
+
+            // Enhance Button Action (FR-1.2, FR-3.2)
+            enhanceBtn.addEventListener('click', () => {
+                const rawText = rawInput.value.trim();
+
+                // Validation (FR-1.2)
+                if (!rawText) {
+                    inputError.classList.remove('hidden');
+                    rawInput.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                    return;
+                }
+
+                inputError.classList.add('hidden');
+                rawInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+
+                // UI State Update / Loading (FR-3.2)
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+                enhanceBtn.disabled = true;
+                outputArea.value = ""; // Clear previous output
+
+                const enhancedPrompt = compilePrompt(
+                    rawText,
+                    activePersona,
+                    densitySlider.value,
+                    toggleNegative.checked,
+                    toggleCot.checked
+                );
+
+                // Fallback Model Priority List
+                const models = [
+                    "anthropic/claude-fable-5",
+                    "openai/gpt-5.5-pro",
+                    "openai/gpt-5.5",
+                    "anthropic/claude-opus-4-8",
+                    "anthropic/claude-opus-4.8-fast",
+                    "anthropic/claude-opus-4-7",
+                    "google/gemini-3.1-pro-preview",
+                    "deepseek/deepseek-v4-pro",
+                    "qwen/qwen3.7-max",
+                    "openai/gpt-5.4-pro",
+                    "openai/gpt-5.4",
+                    "anthropic/claude-opus-4-6",
+                    "anthropic/claude-opus-4.6-fast",
+                    "anthropic/claude-sonnet-4-6",
+                    // Guaranteed standard fallbacks
+                    "claude-3-5-sonnet",
+                    "gpt-4o"
+                ];
+
+                const callLLMWithFallback = async (prompt, modelList) => {
+                    for (const model of modelList) {
+                        try {
+                            // Check if the AI gave an error text
+                            let isErrorText = false;
+
+                            const messages = [
+                                { role: "system", content: "You are an expert Prompt Engineer. I will provide you with a raw prompt idea and some structural constraints. Your job is to completely rewrite and enhance the raw prompt based on these instructions. ONLY output the newly enhanced prompt, do not include any conversational filler." },
+                                { role: "user", content: prompt }
+                            ];
+
+                            const resp = await puter.ai.chat(messages, {
+                                model: model,
+                                stream: true
+                            });
+
+                            for await (const part of resp) {
+                                if (part?.text) {
+                                    // Hide overlay on first chunk
+                                    loadingOverlay.classList.add('hidden');
+                                    loadingOverlay.classList.remove('flex');
+
+                                    // if it's the very first part and matches the raw prompt entirely or just repeats the system prompt, consider it a failure.
+                                    // But more simply, if it starts spewing out the brackets like [ROLE/PERSONA], it failed to follow instructions and is just echoing.
+                                    if(outputArea.value === "" && part.text.includes("[ROLE/PERSONA]")) {
+                                        isErrorText = true;
+                                    }
+
+                                    if(isErrorText) continue;
+
+                                    outputArea.value += part.text;
+                                    outputArea.scrollTop = outputArea.scrollHeight;
+                                }
+                            }
+
+                            if(isErrorText) {
+                                // Clear what we thought might have been an error
+                                outputArea.value = "";
+                                loadingOverlay.classList.remove('hidden');
+                                loadingOverlay.classList.add('flex');
+                                throw new Error("Model hallucinated/echoed prompt instead of enhancing");
+                            }
+
+                            // Success! Break out of the fallback loop
+                            return;
+                        } catch (error) {
+                            console.warn(`Model ${model} failed, trying next...`, error);
+                            // Keep trying the next model
+                        }
+                    }
+
+                    // If all models fail
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('flex');
+                    outputArea.value = "Error: All models failed to generate a response. Please try again later.";
+                };
+
+                // Execute the fallback loop
+                callLLMWithFallback(enhancedPrompt, models).finally(() => {
+                    enhanceBtn.disabled = false;
+                });
+            });
+
+            // Raw input focus clears error
+            rawInput.addEventListener('input', () => {
+                if (rawInput.value.trim().length > 0) {
+                    inputError.classList.add('hidden');
+                    rawInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                }
+            });
+
+            // Macro Append (FR-4.2, FR-4.3)
+            const macros = {
+                'format_json': "\n\n[OUTPUT FORMAT]\nPlease output the final response strictly in JSON format.",
+                'tone_professional': "\n\n[TONE]\nMaintain a highly professional, objective, and formal tone throughout.",
+                'target_beginners': "\n\n[AUDIENCE]\nTarget audience: Absolute beginners. Explain technical terms simply and use analogies."
+            };
+
+            macroBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const macroKey = btn.dataset.macro;
+                    const snippet = macros[macroKey];
+                    const currentOutput = outputArea.value;
+
+                    if (!currentOutput) return; // Don't append if output is empty
+
+                    // Deduplication check (FR-4.3)
+                    if (!currentOutput.includes(snippet.trim())) {
+                        outputArea.value = currentOutput + snippet;
+                        // Scroll to bottom
+                        outputArea.scrollTop = outputArea.scrollHeight;
+                    }
+                });
+            });
+
+            // Copy to Clipboard (FR-5.1, FR-5.2)
+            copyBtn.addEventListener('click', async () => {
+                const textToCopy = outputArea.value;
+                if (!textToCopy) return;
+
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+
+                    // Success state (FR-5.2)
+                    copyBtn.classList.add('bg-green-600/20', 'border-green-600', 'text-green-500');
+                    copyBtn.classList.remove('bg-dark-panel', 'border-dark-border', 'text-dark-text', 'hover:bg-dark-border');
+                    copyText.textContent = 'Copied!';
+
+                    setTimeout(() => {
+                        copyBtn.classList.remove('bg-green-600/20', 'border-green-600', 'text-green-500');
+                        copyBtn.classList.add('bg-dark-panel', 'border-dark-border', 'text-dark-text', 'hover:bg-dark-border');
+                        copyText.textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

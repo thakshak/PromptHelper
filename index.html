@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prompt Enhancer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.puter.com/v2/"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -57,11 +58,12 @@
             <!-- Persona Selection -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-dark-muted">Persona Profile</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
                     <button class="persona-btn active border border-primary-main bg-primary-main/10 text-primary-main rounded py-2 text-sm font-medium transition-colors" data-persona="expert">Expert</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="creative">Creative</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="developer">Developer</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="minimalist">Minimalist</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="imagegen">Image Gen</button>
                 </div>
             </div>
 
@@ -192,7 +194,8 @@
                     'expert': "Act as an industry expert with deep domain knowledge. Provide a comprehensive and authoritative response.",
                     'creative': "Act as a highly creative and unconventional thinker. Provide an innovative and engaging response.",
                     'developer': "Act as a senior software engineer. Provide a structured, technical, and pragmatic response.",
-                    'minimalist': "Act as a minimalist assistant. Provide the most direct, concise, and essential answer possible without fluff."
+                    'minimalist': "Act as a minimalist assistant. Provide the most direct, concise, and essential answer possible without fluff.",
+                    'imagegen': "Act as an expert in image generation prompting. Provide extensive background details for the scene, describing lighting, composition, mood, and style, while firmly grounding it in the user's specific requirements."
                 };
                 prompt += `[ROLE/PERSONA]\n${personaTemplates[persona]}\n\n`;
 
@@ -237,23 +240,98 @@
                 loadingOverlay.classList.remove('hidden');
                 loadingOverlay.classList.add('flex');
                 enhanceBtn.disabled = true;
+                outputArea.value = ""; // Clear previous output
 
-                // Simulated Delay for tactile feel
-                setTimeout(() => {
-                    const enhancedPrompt = compilePrompt(
-                        rawText,
-                        activePersona,
-                        densitySlider.value,
-                        toggleNegative.checked,
-                        toggleCot.checked
-                    );
+                const enhancedPrompt = compilePrompt(
+                    rawText,
+                    activePersona,
+                    densitySlider.value,
+                    toggleNegative.checked,
+                    toggleCot.checked
+                );
 
-                    outputArea.value = enhancedPrompt;
+                // Fallback Model Priority List
+                const models = [
+                    "anthropic/claude-fable-5",
+                    "openai/gpt-5.5-pro",
+                    "openai/gpt-5.5",
+                    "anthropic/claude-opus-4-8",
+                    "anthropic/claude-opus-4.8-fast",
+                    "anthropic/claude-opus-4-7",
+                    "google/gemini-3.1-pro-preview",
+                    "deepseek/deepseek-v4-pro",
+                    "qwen/qwen3.7-max",
+                    "openai/gpt-5.4-pro",
+                    "openai/gpt-5.4",
+                    "anthropic/claude-opus-4-6",
+                    "anthropic/claude-opus-4.6-fast",
+                    "anthropic/claude-sonnet-4-6",
+                    // Guaranteed standard fallbacks
+                    "claude-3-5-sonnet",
+                    "gpt-4o"
+                ];
 
+                const callLLMWithFallback = async (prompt, modelList) => {
+                    for (const model of modelList) {
+                        try {
+                            // Check if the AI gave an error text
+                            let isErrorText = false;
+
+                            const messages = [
+                                { role: "system", content: "You are an expert Prompt Engineer. I will provide you with a raw prompt idea and some structural constraints. Your job is to completely rewrite and enhance the raw prompt based on these instructions. ONLY output the newly enhanced prompt, do not include any conversational filler." },
+                                { role: "user", content: prompt }
+                            ];
+
+                            const resp = await puter.ai.chat(messages, {
+                                model: model,
+                                stream: true
+                            });
+
+                            for await (const part of resp) {
+                                if (part?.text) {
+                                    // Hide overlay on first chunk
+                                    loadingOverlay.classList.add('hidden');
+                                    loadingOverlay.classList.remove('flex');
+
+                                    // if it's the very first part and matches the raw prompt entirely or just repeats the system prompt, consider it a failure.
+                                    // But more simply, if it starts spewing out the brackets like [ROLE/PERSONA], it failed to follow instructions and is just echoing.
+                                    if(outputArea.value === "" && part.text.includes("[ROLE/PERSONA]")) {
+                                        isErrorText = true;
+                                    }
+
+                                    if(isErrorText) continue;
+
+                                    outputArea.value += part.text;
+                                    outputArea.scrollTop = outputArea.scrollHeight;
+                                }
+                            }
+
+                            if(isErrorText) {
+                                // Clear what we thought might have been an error
+                                outputArea.value = "";
+                                loadingOverlay.classList.remove('hidden');
+                                loadingOverlay.classList.add('flex');
+                                throw new Error("Model hallucinated/echoed prompt instead of enhancing");
+                            }
+
+                            // Success! Break out of the fallback loop
+                            return;
+                        } catch (error) {
+                            console.warn(`Model ${model} failed, trying next...`, error);
+                            // Keep trying the next model
+                        }
+                    }
+
+                    // If all models fail
                     loadingOverlay.classList.add('hidden');
                     loadingOverlay.classList.remove('flex');
+                    outputArea.value = "Error: All models failed to generate a response. Please try again later.";
+                };
+
+                // Execute the fallback loop
+                callLLMWithFallback(enhancedPrompt, models).finally(() => {
                     enhanceBtn.disabled = false;
-                }, 450);
+                });
             });
 
             // Raw input focus clears error

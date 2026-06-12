@@ -219,13 +219,21 @@
                 prompt += `[FORMAT & DETAIL LEVEL]\n${densityTemplates[density]}\n\n`;
 
                 // 4. Constraints
-                let constraints = [];
-                if (negative) constraints.push("- Do NOT use generic AI clichés (e.g., 'In conclusion', 'It is important to note', 'As an AI').\n- Do NOT include unnecessary fluff or conversational filler.");
-                if (cot) constraints.push("- Think step-by-step before arriving at your final answer. Present your reasoning process clearly.");
+                prompt += `[CONSTRAINTS]\n`;
 
-                if (constraints.length > 0) {
-                    prompt += `[CONSTRAINTS]\n${constraints.join('\n')}\n\n`;
+                if (negative) {
+                    prompt += `- Negative Constraints: ON (Do NOT use generic AI clichés like 'In conclusion', 'It is important to note', 'As an AI'. Do NOT include unnecessary fluff or conversational filler.)\n`;
+                } else {
+                    prompt += `- Negative Constraints: OFF\n`;
                 }
+
+                if (cot) {
+                    prompt += `- Chain-of-Thought: ON (Think step-by-step before arriving at your final answer. Present your reasoning process clearly.)\n`;
+                } else {
+                    prompt += `- Chain-of-Thought: OFF\n`;
+                }
+
+                prompt += `\n`;
 
                 return prompt.trim();
             };

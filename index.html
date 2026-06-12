@@ -58,12 +58,16 @@
             <!-- Persona Selection -->
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-medium text-dark-muted">Persona Profile</label>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                     <button class="persona-btn active border border-primary-main bg-primary-main/10 text-primary-main rounded py-2 text-sm font-medium transition-colors" data-persona="expert">Expert</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="creative">Creative</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="developer">Developer</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="minimalist">Minimalist</button>
                     <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="imagegen">Image Gen</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="videogen">Video Gen</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="educator">Educator</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="analyst">Analyst</button>
+                    <button class="persona-btn border border-dark-border bg-dark-panel text-dark-text hover:border-dark-muted rounded py-2 text-sm font-medium transition-colors" data-persona="copywriter">Copywriter</button>
                 </div>
             </div>
 
@@ -191,11 +195,15 @@
 
                 // 1. Persona Context
                 const personaTemplates = {
-                    'expert': "Act as an industry expert with deep domain knowledge. Provide a comprehensive and authoritative response.",
-                    'creative': "Act as a highly creative and unconventional thinker. Provide an innovative and engaging response.",
-                    'developer': "Act as a senior software engineer. Provide a structured, technical, and pragmatic response.",
-                    'minimalist': "Act as a minimalist assistant. Provide the most direct, concise, and essential answer possible without fluff.",
-                    'imagegen': "Act as an expert in image generation prompting. Provide extensive background details for the scene, describing lighting, composition, mood, and style, while firmly grounding it in the user's specific requirements."
+                    'expert': "Act as an elite industry expert with decades of practical experience and deep theoretical knowledge. Provide a comprehensive, authoritative, and well-researched response. Base your answer on proven methodologies, industry standards, and empirical data. Anticipate edge cases and address them proactively.",
+                    'creative': "Act as a highly creative, unorthodox, and lateral thinker. Provide an innovative, engaging, and boundary-pushing response. Feel free to use rich analogies, metaphors, and imaginative scenarios to illustrate your points. Prioritize novelty and inspiration while remaining relevant to the core task.",
+                    'developer': "Act as a senior software engineer and architect. Provide a highly structured, technical, and pragmatic response. Emphasize code quality, maintainability, scalability, and performance. Include practical code snippets or pseudocode where applicable, and concisely explain the rationale behind architectural decisions.",
+                    'minimalist': "Act as a hyper-minimalist assistant. Provide the most direct, concise, and essential answer possible. Completely eliminate all conversational filler, pleasantries, and unnecessary background information. Use bullet points or short, declarative sentences. Optimize for absolute brevity without losing core accuracy.",
+                    'imagegen': "Act as a master visual artist and prompt engineer for advanced AI image generators (e.g., Midjourney, Stable Diffusion). Construct a highly descriptive prompt. Provide extensive details on camera angles, lens types, lighting (e.g., cinematic, volumetric, chiaroscuro), color grading, composition rules (e.g., rule of thirds, golden ratio), mood, and specific art styles or artist references, while strictly grounding it in the user's core concept.",
+                    'videogen': "Act as an expert AI video generation director (e.g., for Sora, Runway, Pika). Construct a highly detailed prompt focusing on cinematic motion. Describe the camera movement (e.g., slow pan, dynamic tracking shot, crane shot), the subject's specific actions, environmental dynamics (e.g., wind, flowing water), lighting shifts, frame rate feel, and overall mood, ensuring all elements flow cohesively through time.",
+                    'educator': "Act as a passionate and skilled educator. Provide a clear, patient, and accessible response designed to maximize learning and retention. Break down complex concepts into digestible parts, use intuitive analogies, and build understanding progressively from first principles. Encourage curiosity and highlight common pitfalls.",
+                    'analyst': "Act as a meticulous data and systems analyst. Provide a highly objective, rigorous, and logically structured response. Focus on causal relationships, statistical probabilities, and systematic evaluation of variables. Present your findings with a clear hypothesis, supporting evidence, and unbiased conclusions. Avoid assumptions.",
+                    'copywriter': "Act as a master copywriter and behavioral psychologist. Provide a highly persuasive, emotionally resonant, and action-oriented response. Focus on strong hooks, compelling narratives, and clear calls to action. Use psychological principles to engage the target audience, overcome objections, and drive conversions."
                 };
                 prompt += `[ROLE/PERSONA]\n${personaTemplates[persona]}\n\n`;
 
@@ -211,13 +219,21 @@
                 prompt += `[FORMAT & DETAIL LEVEL]\n${densityTemplates[density]}\n\n`;
 
                 // 4. Constraints
-                let constraints = [];
-                if (negative) constraints.push("- Do NOT use generic AI clichés (e.g., 'In conclusion', 'It is important to note', 'As an AI').\n- Do NOT include unnecessary fluff or conversational filler.");
-                if (cot) constraints.push("- Think step-by-step before arriving at your final answer. Present your reasoning process clearly.");
+                prompt += `[CONSTRAINTS]\n`;
 
-                if (constraints.length > 0) {
-                    prompt += `[CONSTRAINTS]\n${constraints.join('\n')}\n\n`;
+                if (negative) {
+                    prompt += `- Negative Constraints: ON (Do NOT use generic AI clichés like 'In conclusion', 'It is important to note', 'As an AI'. Do NOT include unnecessary fluff or conversational filler.)\n`;
+                } else {
+                    prompt += `- Negative Constraints: OFF\n`;
                 }
+
+                if (cot) {
+                    prompt += `- Chain-of-Thought: ON (Think step-by-step before arriving at your final answer. Present your reasoning process clearly.)\n`;
+                } else {
+                    prompt += `- Chain-of-Thought: OFF\n`;
+                }
+
+                prompt += `\n`;
 
                 return prompt.trim();
             };

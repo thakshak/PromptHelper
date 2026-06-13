@@ -287,6 +287,25 @@
                     "gpt-4o"
                 ];
 
+                const asyncIteratorWithTimeout = async function*(asyncIterable, timeoutMs) {
+                    const iterator = asyncIterable[Symbol.asyncIterator]();
+                    while (true) {
+                        let timeoutId;
+                        const timeoutPromise = new Promise((_, reject) => {
+                            timeoutId = setTimeout(() => reject(new Error('Timeout')), timeoutMs);
+                        });
+                        try {
+                            const result = await Promise.race([iterator.next(), timeoutPromise]);
+                            clearTimeout(timeoutId);
+                            if (result.done) break;
+                            yield result.value;
+                        } catch (err) {
+                            clearTimeout(timeoutId);
+                            throw err;
+                        }
+                    }
+                };
+
                 const callLLMWithFallback = async (prompt, modelList) => {
                     for (const model of modelList) {
                         try {
@@ -298,12 +317,28 @@
                                 { role: "user", content: prompt }
                             ];
 
-                            const resp = await puter.ai.chat(messages, {
+                            const chatPromise = puter.ai.chat(messages, {
                                 model: model,
                                 stream: true
                             });
 
-                            for await (const part of resp) {
+                            let connectTimeoutId;
+                            const connectTimeout = new Promise((_, reject) => {
+                                connectTimeoutId = setTimeout(() => reject(new Error('Connection timeout')), 5000);
+                            });
+
+                            let resp;
+                            try {
+                                resp = await Promise.race([chatPromise, connectTimeout]);
+                            } finally {
+                                clearTimeout(connectTimeoutId);
+                            }
+
+                            if (!resp || typeof resp[Symbol.asyncIterator] !== 'function') {
+                                throw new Error('Response is not an async iterator');
+                            }
+
+                            for await (const part of asyncIteratorWithTimeout(resp, 5000)) {
                                 if (part?.text) {
                                     // Hide overlay on first chunk
                                     loadingOverlay.classList.add('hidden');
